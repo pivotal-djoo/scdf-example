@@ -116,7 +116,7 @@ jobs:
         dataflow_server_url: http://host.docker.internal:9393
         app_name: time-source
         app_type: source
-        artifactory_url: http://localhost:8081/artifactory
+        artifactory_url: http://host.docker.internal:8081/artifactory
         repository: time-source
 
 ### Time processor stream app
@@ -158,7 +158,7 @@ jobs:
         dataflow_server_url: http://host.docker.internal:9393
         app_name: time-processor
         app_type: processor
-        artifactory_url: http://localhost:8081/artifactory
+        artifactory_url: http://host.docker.internal:8081/artifactory
         repository: time-processor
 
 ### Logging sink stream app
@@ -200,7 +200,7 @@ jobs:
         dataflow_server_url: http://host.docker.internal:9393
         app_name: logging-sink
         app_type: sink
-        artifactory_url: http://localhost:8081/artifactory
+        artifactory_url: http://host.docker.internal:8081/artifactory
         repository: logging-sink
 
 ### Deploy stream using updated apps
