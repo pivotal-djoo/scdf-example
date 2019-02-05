@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: byrnedo/alpine-curl
+
+inputs:
+  - name: time-source-artifactory
+    optional: true
+  - name: time-processor-artifactory
+    optional: true
+  - name: logging-sink-artifactory
+    optional: true
+  - name: ci-git
+
+run:
+  path: ci-git/ci/register.sh

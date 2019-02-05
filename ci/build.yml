@@ -1,0 +1,26 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: java
+    tag: '8-jdk'
+
+inputs:
+  - name: time-source-git
+    optional: true
+  - name: time-processor-git
+    optional: true
+  - name: logging-sink-git
+    optional: true
+  - name: ci-git
+
+outputs:
+  - name: deploy
+
+caches:
+  - path: .gradle/
+
+run:
+  path: ci-git/ci/build-spring.sh

@@ -1,0 +1,224 @@
+---
+
+## RESOURCE TYPES
+resource_types:
+
+### Concourse resource to deploy and retrieve artifacts from a JFrog Artifactory
+### https://github.com/spring-io/artifactory-resource
+- name: artifactory
+  type: docker-image
+  source:
+    repository: pivotalservices/artifactory-resource
+
+## RESOURCES
+resources:
+
+### Artifactory resources
+- name: time-source-artifactory
+  type: artifactory
+  source:
+    endpoint: http://host.docker.internal:8081/artifactory
+    repository: "/time-source"
+    regex: "time-source-(?<version>.*).jar"
+    username: admin
+    password: password
+    skip_ssl_verification: true
+
+- name: time-processor-artifactory
+  type: artifactory
+  source:
+    endpoint: http://host.docker.internal:8081/artifactory
+    repository: "/time-processor"
+    regex: "time-processor-(?<version>.*).jar"
+    username: admin
+    password: password
+    skip_ssl_verification: true
+
+- name: logging-sink-artifactory
+  type: artifactory
+  source:
+    endpoint: http://host.docker.internal:8081/artifactory
+    repository: "/logging-sink"
+    regex: "logging-sink-(?<version>.*).jar"
+    username: admin
+    password: password
+    skip_ssl_verification: true
+
+### Git resources
+- name: ci-git
+  type: git
+  source: &scdf-example-git
+    uri: https://github.com/xtreme-david-joo/scdf-example.git
+    branch: master
+    paths:
+      - ci
+
+- name: time-source-git
+  type: git
+  source:
+    <<: *scdf-example-git
+    paths:
+      - time-source
+
+- name: time-processor-git
+  type: git
+  source:
+    <<: *scdf-example-git
+    paths:
+      - time-processor
+
+- name: logging-sink-git
+  type: git
+  source:
+    <<: *scdf-example-git
+    paths:
+      - logging-sink
+
+## JOBS
+jobs:
+
+### Time source stream app
+- name: test-time-source
+  plan:
+    - get: ci-git
+    - get: time-source-git
+      trigger: true
+    - task: test
+      file: ci-git/ci/test.yml
+      params:
+        source_path: time-source-git/time-source
+
+- name: build-time-source
+  plan:
+    - get: time-source-git
+      passed: [test-time-source]
+      trigger: true
+    - get: ci-git
+    - task: build
+      file: ci-git/ci/build.yml
+      params:
+        source_path: time-source-git/time-source
+    - put: time-source-artifactory
+      params:
+        file: ./deploy/time-source-*.jar
+        skip_ssl_verification: true
+
+- name: register-time-source
+  plan:
+    - get: time-source-artifactory
+      passed: [build-time-source]
+      trigger: true
+    - get: ci-git
+    - task: register-app
+      file: ci-git/ci/register.yml
+      params:
+        build_path: time-source-artifactory
+        dataflow_server_url: http://host.docker.internal:9393
+        app_name: time-source
+        app_type: source
+        artifactory_url: http://localhost:8081/artifactory
+        repository: time-source
+
+### Time processor stream app
+- name: test-time-processor
+  plan:
+    - get: ci-git
+    - get: time-processor-git
+      trigger: true
+    - task: test
+      file: ci-git/ci/test.yml
+      params:
+        source_path: time-processor-git/time-processor
+
+- name: build-time-processor
+  plan:
+    - get: time-processor-git
+      passed: [test-time-processor]
+      trigger: true
+    - get: ci-git
+    - task: build
+      file: ci-git/ci/build.yml
+      params:
+        source_path: time-processor-git/time-processor
+    - put: time-processor-artifactory
+      params:
+        file: ./deploy/time-processor-*.jar
+        skip_ssl_verification: true
+
+- name: register-time-processor
+  plan:
+    - get: time-processor-artifactory
+      passed: [build-time-processor]
+      trigger: true
+    - get: ci-git
+    - task: register-app
+      file: ci-git/ci/register.yml
+      params:
+        build_path: time-processor-artifactory
+        dataflow_server_url: http://host.docker.internal:9393
+        app_name: time-processor
+        app_type: processor
+        artifactory_url: http://localhost:8081/artifactory
+        repository: time-processor
+
+### Logging sink stream app
+- name: test-logging-sink
+  plan:
+    - get: ci-git
+    - get: logging-sink-git
+      trigger: true
+    - task: test
+      file: ci-git/ci/test.yml
+      params:
+        source_path: logging-sink-git/logging-sink
+
+- name: build-logging-sink
+  plan:
+    - get: logging-sink-git
+      passed: [test-logging-sink]
+      trigger: true
+    - get: ci-git
+    - task: build
+      file: ci-git/ci/build.yml
+      params:
+        source_path: logging-sink-git/logging-sink
+    - put: logging-sink-artifactory
+      params:
+        file: ./deploy/logging-sink-*.jar
+        skip_ssl_verification: true
+
+- name: register-logging-sink
+  plan:
+    - get: logging-sink-artifactory
+      passed: [build-logging-sink]
+      trigger: true
+    - get: ci-git
+    - task: register-app
+      file: ci-git/ci/register.yml
+      params:
+        build_path: logging-sink-artifactory
+        dataflow_server_url: http://host.docker.internal:9393
+        app_name: logging-sink
+        app_type: sink
+        artifactory_url: http://localhost:8081/artifactory
+        repository: logging-sink
+
+### Deploy stream using updated apps
+- name: deploy-stream
+  plan:
+    - get: time-source-artifactory
+      passed: [register-time-source]
+      trigger: true
+    - get: time-processor-artifactory
+      passed: [register-time-processor]
+      trigger: true
+    - get: logging-sink-artifactory
+      passed: [register-logging-sink]
+      trigger: true
+    - get: ci-git
+    - task: deploy-stream
+      file: ci-git/ci/deploy-stream.yml
+      params:
+        dataflow_server_url: http://host.docker.internal:9393
+        stream_name: time-to-log
+        stream_dsl: time-source | time-processor | logging-sink
