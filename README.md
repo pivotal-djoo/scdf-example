@@ -2,7 +2,7 @@
 
 In this example guide, we will:
 1. Create custom [Spring Cloud Stream](https://cloud.spring.io/spring-cloud-stream/) apps  
-2. Deploy stream apps to a Spring Cloud Dataflow server with Spring Cloud Skipper configured  
+2. Deploy stream apps to a Spring Cloud Dataflow server  
 3. Use a CI/CD tool to automate building and deploying the stream apps on the SCDF server  
 
 &nbsp;
@@ -25,21 +25,20 @@ If you have access to a Spring Cloud Dataflow server, you may skip setting up a 
 
 ### 1. Start up a Dataflow server locally
 
-For the purose of this guide, we'll use a pre-configured docker-compose.yml to run most of our local environment for Dataflow.  This docker-compose.yml is a modified version from the [official guide](https://cloud.spring.io/spring-cloud-dataflow/) with Spring Cloud Skipper added.  
+For the purose of this guide, we'll use a pre-configured docker-compose.yml to run most of our local environment for Dataflow.  This docker-compose.yml is from the [official guide](https://cloud.spring.io/spring-cloud-dataflow/).  
 
 This image will run the following:
 - Spring Cloud Dataflow Server
-- Spring Cloud Skipper
 - Kafka Message Queue
-- Apache Zookeeper
+- Apache Zookeeper (for Kafka)
 
 This will simulate a Dataflow server which is typically available as a tile on a PAS or a PKS instance.
 
-Download [docker-compose.yml](docker-compose.yml) from this repo, and run it.
+Download [docker-compose.yml](https://raw.githubusercontent.com/spring-cloud/spring-cloud-dataflow/v1.7.4.RELEASE/spring-cloud-dataflow-server-local/docker-compose.yml) from this repo, and run it.
 
 ```
-> wget https://github.com/pivotal-djoo/scdf-example/raw/master/docker-compose.yml
- 
+> wget https://raw.githubusercontent.com/spring-cloud/spring-cloud-dataflow/v1.7.4.RELEASE/spring-cloud-dataflow-server-local/docker-compose.yml
+
 > DATAFLOW_VERSION=1.7.4.RELEASE docker-compose up
 ```
 
@@ -50,7 +49,7 @@ Downlaod and run the Dataflow shell [jar](http://repo.spring.io/release/org/spri
 ```
 > wget http://repo.spring.io/release/org/springframework/cloud/spring-cloud-dataflow-shell/1.7.4.RELEASE/spring-cloud-dataflow-shell-1.7.4.RELEASE.jar
   
-> java -jar spring-cloud-dataflow-shell-1.7.4.RELEASE.jar --dataflow.mode=skipper
+> java -jar spring-cloud-dataflow-shell-1.7.4.RELEASE.jar
 ```
 
 Once the shell boots up, you can type in commands such as `help` or `app list` to interact with the SCDF server.
@@ -273,16 +272,16 @@ The below will create three stream apps:
 - `time-processor`, type: `processor`
 - `logging-sink`, type: `sink`
 
-Reference: [Registering a New Application with Version](http://docs.spring.io/spring-cloud-dataflow/docs/1.7.4.RELEASE/reference/htmlsingle/#resources-app-registry-post-skipper)
+Reference: [Registering a New Application](http://docs.spring.io/spring-cloud-dataflow/docs/1.7.4.RELEASE/reference/htmlsingle/#resources-app-registry-post)
 
 ```
-> curl 'http://localhost:9393/apps/source/time-source/0.0.1.SNAPSHOT' -i -X POST -d \
+> curl 'http://localhost:9393/apps/source/time-source' -i -X POST -d \
     "uri=http://host.docker.internal:8081/artifactory/time-source/time-source-0.0.1-SNAPSHOT.jar"
  
-> curl 'http://localhost:9393/apps/source/time-processor/0.0.1.SNAPSHOT' -i -X POST -d \
+> curl 'http://localhost:9393/apps/source/time-processor' -i -X POST -d \
     "uri=http://host.docker.internal:8081/artifactory/time-processor/time-processor-0.0.1-SNAPSHOT.jar"
   
-> curl 'http://localhost:9393/apps/source/logging-sink/0.0.1.SNAPSHOT' -i -X POST -d \
+> curl 'http://localhost:9393/apps/source/logging-sink' -i -X POST -d \
     "uri=http://host.docker.internal:8081/artifactory/logging-sink/logging-sink-0.0.1-SNAPSHOT.jar"
 ```
 
@@ -296,7 +295,7 @@ Reference: [Creating a New Stream Definition](http://docs.spring.io/spring-cloud
 > curl "http://localhost:9393/streams/definitions" -i -X POST -d "name=time-to-log&definition=time-source | time-processor | logging-sink&deploy=true" 
 ```
 
-### 3. More Stream Operations
+### 3. More Operations
 
 [Undeploy a stream](http://docs.spring.io/spring-cloud-dataflow/docs/1.7.4.RELEASE/reference/htmlsingle/#api-guide-resources-stream-deployment-undeploy):
 ```

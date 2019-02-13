@@ -7,20 +7,21 @@ file_name=$(ls ${app_name}*.jar)
 
 response=response.txt
 
-## Create a new app version on dataflow server
+## Unregister old stream app
+status=$(curl -s -w %{http_code} -o ${response} "${dataflow_server_url}/apps/${app_type}/${app_name}" -i -X DELETE)
+if [ ${status} -lt 300 ]; then
+    cat ${response}
+    echo "Unregistered ${app_type} / ${app_name}"
+else
+    echo "Failed to unregister ${app_type} / ${app_name}"
+fi
+
+## Register a new stream app
 status=$(curl -s -w %{http_code} -o ${response} "${dataflow_server_url}/apps/${app_type}/${app_name}" -i -X POST -d "uri=${artifactory_url}/${repository}/${file_name}")
 if [ ${status} -lt 300 ]; then
     cat ${response}
+    echo "Registered ${app_type} / ${app_name}"
 else
-    echo "Failed to register a new app version"
-    return -1
-fi
-
-## Make new version default
-status=$(curl -s -w %{http_code} -o ${response} "${dataflow_server_url}/apps/${app_type}/${app_name}" -i -X PUT -H 'Accept: application/json')
-if [ ${status} -lt 300 ]; then
-    cat ${response}
-else
-    echo "Failed to set new version as default"
+    echo "Failed to register ${app_type} / ${app_name}"
     return -1
 fi

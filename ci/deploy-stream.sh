@@ -15,8 +15,9 @@ if [ ${status} = "200" ]; then
 
     if [ ${status} -lt 300 ]; then
         cat ${response}
+        echo "Deployed stream ${stream_name}"
     else
-        echo "Failed to deploy stream"
+        echo "Failed to deploy stream ${stream_name}"
         return -1
     fi
 else
@@ -27,8 +28,9 @@ else
 
     if [ ${status} -lt 300 ]; then
         cat ${response}
+        echo "Created stream ${stream_name}"
     else
-        echo "Failed to create a new stream definition"
+        echo "Failed to create a new stream definition ${stream_name}"
         return -1
     fi
 fi
